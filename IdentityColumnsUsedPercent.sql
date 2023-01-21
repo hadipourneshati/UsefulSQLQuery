@@ -1,0 +1,26 @@
+SELECT main.TABLE_NAME,
+       main.COLUMN_NAME,
+       main.DATA_TYPE,
+       main.CURRENT_IDENTITY,
+       main.MAXIMUM_IDENTITY,
+       (main.CURRENT_IDENTITY / main.MAXIMUM_IDENTITY) * 100 AS PERCENT_USED
+FROM
+(
+    SELECT c.TABLE_NAME,
+           c.COLUMN_NAME,
+           c.DATA_TYPE,
+           IDENT_CURRENT(c.TABLE_SCHEMA + '.' + c.TABLE_NAME) AS CURRENT_IDENTITY,
+           CASE
+               WHEN c.DATA_TYPE = 'int' THEN
+                   2147483647
+               WHEN c.DATA_TYPE = 'bigint' THEN
+                   9223372036854775807
+           END AS MAXIMUM_IDENTITY
+    FROM INFORMATION_SCHEMA.COLUMNS c
+        LEFT JOIN INFORMATION_SCHEMA.VIEWS v
+            ON c.TABLE_SCHEMA = v.TABLE_SCHEMA
+               AND c.TABLE_NAME = v.TABLE_NAME
+    WHERE v.TABLE_NAME IS NULL
+          AND COLUMNPROPERTY(OBJECT_ID(c.TABLE_SCHEMA + '.' + c.TABLE_NAME), c.COLUMN_NAME, 'IsIdentity') = 1
+) main
+ORDER BY PERCENT_USED DESC;
